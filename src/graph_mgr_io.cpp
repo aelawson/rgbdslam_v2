@@ -1,20 +1,20 @@
 /* This file is part of RGBDSLAM.
- * 
+ *
  * RGBDSLAM is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * RGBDSLAM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** This file contains the methods of GraphManager concerned with transfering 
+/** This file contains the methods of GraphManager concerned with transfering
  * data via ROS, to the screen (visualization) or to disk. They are declared in graph_manager.h */
 
 #include <sys/time.h>
@@ -54,7 +54,7 @@ void GraphManager::sendAllClouds(bool threaded){
 tf::StampedTransform GraphManager::computeFixedToBaseTransform(Node* node, bool invert)
 {
     g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(node->vertex_id_));
-    if(!v){ 
+    if(!v){
       ROS_FATAL("Nullpointer in graph at position %i!", node->vertex_id_);
       throw std::exception();
     }
@@ -71,7 +71,7 @@ tf::StampedTransform GraphManager::computeFixedToBaseTransform(Node* node, bool 
 
     //makes sure things have a corresponding timestamp
     //also avoids problems with tflistener cache size if mapping took long. Must be synchronized with tf broadcasting
-    ros::Time now = ros::Time::now(); 
+    ros::Time now = ros::Time::now();
 
     printTransform("World->Base", world2base);
     std::string fixed_frame = ParameterServer::instance()->get<std::string>("fixed_frame_name");
@@ -110,7 +110,7 @@ void GraphManager::saveBagfile(QString filename)
   bag.open(qPrintable(filename), rosbag::bagmode::Write);
   if(ParameterServer::instance()->get<bool>("compress_output_bagfile"))
   {
-    bag.setCompression(rosbag::compression::BZ2); 
+    bag.setCompression(rosbag::compression::BZ2);
   }
   geometry_msgs::TransformStamped geom_msg;
 
@@ -147,6 +147,38 @@ void GraphManager::saveBagfile(QString filename)
   bag.close();
 }
 
+void GraphManager::sendNewCloud(Node* node) {
+    ScopedTimer s(__FUNCTION__);
+
+    if (new_cloud_pub_.getNumSubscribers() == 0){
+      ROS_WARN("No Subscribers: Sending of new cloud cancelled");
+      return;
+    }
+
+    ROS_INFO("Sending out new clouds");
+    batch_processing_runs_ = true;
+    ros::Rate r(ParameterServer::instance()->get<double>("send_clouds_rate")); //slow down a bit, to allow for transmitting to and processing in other nodes
+    double delay_seconds = ParameterServer::instance()->get<double>("send_clouds_delay");
+
+    if(!node->valid_tf_estimate_) {
+    ROS_INFO("Skipping node %i: No valid estimate", node->id_);
+    continue;
+    }
+    while(node->header_.stamp.toSec() > (ros::Time::now().toSec() - delay_seconds)){
+    ROS_INFO("Waiting for node becoming %f seconds old", delay_seconds);
+    r.sleep();
+    }
+    tf::StampedTransform base_to_fixed = this->computeFixedToBaseTransform(node, true);
+    br_.sendTransform(base_to_fixed);
+    publishCloud(node, base_to_fixed.stamp_, new_cloud_pub_);
+
+    QString message;
+    Q_EMIT setGUIInfo(message.sprintf("Sending pointcloud and map transform (%i/%i) on topics %s and /tf",
+        it->first, (int)graph_.size(), ParameterServer::instance()->get<std::string>("new_cloud_out_topic").c_str()) );
+
+    batch_processing_runs_ = false;
+    Q_EMIT sendFinished();
+}
 
 void GraphManager::sendAllCloudsImpl()
 {
@@ -235,7 +267,7 @@ bool GraphManager::updateCloudOrigin(Node* node)
 void GraphManager::saveOctomap(QString filename, bool threaded){
   if (ParameterServer::instance()->get<bool>("octomap_online_creation")) {
     this->writeOctomap(filename);
-  } 
+  }
   else{ //if not online creation, create now
     if (ParameterServer::instance()->get<bool>("concurrent_io") && threaded) {
       //saveOctomapImpl(filename);
@@ -265,7 +297,7 @@ void GraphManager::saveOctomapImpl(QString filename)
         points_to_render += node->pc_col->size();
       }
     }
-  } 
+  }
   // Now (this takes long) render the clouds into the octomap
   int counter = 0;
   co_server_.reset();
@@ -346,7 +378,7 @@ void GraphManager::saveIndividualCloudsToFile(QString file_basename)
     }
 
     g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(node->vertex_id_));
-    if(!v){ 
+    if(!v){
       ROS_ERROR("Nullpointer in graph at position %i!", it->first);
       continue;
     }
@@ -393,7 +425,7 @@ void GraphManager::saveIndividualCloudsToFile(QString file_basename)
 
     if(!gt.empty()){
       tf::StampedTransform gt_world2base = node->getGroundTruthTransform();//get mocap pose of base in map
-      if( gt_world2base.frame_id_   == "/missing_ground_truth" ){ 
+      if( gt_world2base.frame_id_   == "/missing_ground_truth" ){
         ROS_WARN_STREAM("Skipping ground truth: " << gt_world2base.child_frame_id_ << " child/parent " << gt_world2base.frame_id_);
         continue;
       }
@@ -491,7 +523,7 @@ void GraphManager::saveAllCloudsToFile(QString filename){
 
     pcl::PointCloud<point_type> aggregate_cloud; ///will hold all other clouds
     //Make big enough to hold all other clouds. This might be too much if NaNs are filtered. They are filtered according to the parameter preserve_raster_on_save
-    aggregate_cloud.reserve(graph_.size() * graph_.begin()->second->pc_col->size()); 
+    aggregate_cloud.reserve(graph_.size() * graph_.begin()->second->pc_col->size());
     ROS_INFO("Saving all clouds to %s, this may take a while as they need to be transformed to a common coordinate frame.", qPrintable(filename));
     batch_processing_runs_ = true;
 
@@ -515,7 +547,7 @@ void GraphManager::saveAllCloudsToFile(QString filename){
         continue;
       }
       g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(node->vertex_id_));
-      if(!v){ 
+      if(!v){
         ROS_ERROR("Nullpointer in graph at position %i!", it->first);
         continue;
       }
@@ -554,12 +586,12 @@ void GraphManager::pointCloud2MeshFile(QString filename, pointcloud_type full_cl
   QFile file(filename);//file is closed on destruction
   if(!file.open(QIODevice::WriteOnly|QIODevice::Text)){
     ROS_ERROR("Could not open file %s", qPrintable(filename));
-    return; 
+    return;
   }
   QTextStream out(&file);
 	out << "ply\n";
 	out << "format ascii 1.0\n";
-	out << "element vertex " << (int)full_cloud.points.size() << "\n"; 
+	out << "element vertex " << (int)full_cloud.points.size() << "\n";
 	out << "property float x\n";
 	out << "property float y\n";
 	out << "property float z\n";
@@ -578,7 +610,7 @@ void GraphManager::pointCloud2MeshFile(QString filename, pointcloud_type full_cl
     out << qSetFieldWidth(3) << r << " " << g << " " << b << "\n";
   }
 }
-  
+
 
 void GraphManager::saveTrajectory(QString filebasename, bool with_ground_truth)
 {
@@ -602,7 +634,7 @@ void GraphManager::saveTrajectory(QString filebasename, bool with_ground_truth)
     gtt_out.setRealNumberNotation(QTextStream::FixedNotation);
     gtt_out << "# TF Coordinate Frame ID: " << b2p.frame_id_.c_str() << "(data: " << b2p.child_frame_id_.c_str() << ")\n";
 
-     
+
     QString et_fname("_estimate.txt");
     QFile et_file (et_fname.prepend(filebasename));//file is closed on destruction
     if(!et_file.open(QIODevice::WriteOnly|QIODevice::Text)) return; //TODO: Errormessage
@@ -632,21 +664,21 @@ void GraphManager::saveTrajectory(QString filebasename, bool with_ground_truth)
       //et_out << uncertainty(0,0) << "\t" << uncertainty(1,1) << "\t" << uncertainty(2,2) << "\t" << uncertainty(3,3) << "\t" << uncertainty(4,4) << "\t" << uncertainty(5,5) <<"\n" ;
       if(with_ground_truth && !gt.empty()){
         tf::StampedTransform gt_world2base = node->getGroundTruthTransform();//get mocap pose of base in map
-        if( gt_world2base.frame_id_   == "/missing_ground_truth" ){ 
+        if( gt_world2base.frame_id_   == "/missing_ground_truth" ){
           ROS_WARN_STREAM("Skipping ground truth: " << gt_world2base.child_frame_id_ << " child/parent " << gt_world2base.frame_id_);
           continue;
         }
-        logTransform(gtt_out, gt_world2base, gt_world2base.stamp_.toSec()); 
-        //logTransform(et_out, world2base, gt_world2base.stamp_.toSec()); 
-      } 
+        logTransform(gtt_out, gt_world2base, gt_world2base.stamp_.toSec());
+        //logTransform(et_out, world2base, gt_world2base.stamp_.toSec());
+      }
     }
     ROS_INFO_COND(!gt.empty() && with_ground_truth, "Written logfiles ground_truth_trajectory.txt and estimated_trajectory.txt");
     ROS_INFO_COND(gt.empty(),  "Written logfile estimated_trajectory.txt");
 }
 
-/** The following function are used for visualization in RVIZ. 
- * They are only activated if their ros topics are subscribed to. 
- * Be careful, they haven't been tested in a long time 
+/** The following function are used for visualization in RVIZ.
+ * They are only activated if their ros topics are subscribed to.
+ * Be careful, they haven't been tested in a long time
  */
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Point.h>
@@ -671,7 +703,7 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id, bool draw_outl
         marker_lines.id = marker_id;
         marker_lines.type = visualization_msgs::Marker::LINE_LIST;
         marker_lines.scale.x = 0.002;
-        
+
         std_msgs::ColorRGBA color_red  ;  //red outlier
         color_red.r = 1.0;
         color_red.a = 1.0;
@@ -690,8 +722,8 @@ void GraphManager::visualizeFeatureFlow3D(unsigned int marker_id, bool draw_outl
         const g2o::VertexSE3* earlier_v; //used to get the transform
         const g2o::VertexSE3* newer_v; //used to get the transform
         // end of initialization
-        ROS_DEBUG("Matches Visualization start: %zu Matches, %zu Inliers", 
-                  curr_best_result_.all_matches.size(), 
+        ROS_DEBUG("Matches Visualization start: %zu Matches, %zu Inliers",
+                  curr_best_result_.all_matches.size(),
                   curr_best_result_.inlier_matches.size());
 
         // write all inital matches to the line_list
@@ -786,7 +818,7 @@ void GraphManager::visualizeGraphEdges() const {
             point.y = v1->estimate().translation().y();
             point.z = v1->estimate().translation().z();
             edges_marker.points.push_back(point);
-            
+
             point.x = v2->estimate().translation().x();
             point.y = v2->estimate().translation().y();
             point.z = v2->estimate().translation().z();
@@ -904,7 +936,7 @@ void GraphManager::saveG2OGraph(QString filename)
   optimizer_->save(qPrintable(filename));
 }
 
-tf::StampedTransform GraphManager::stampedTransformInWorldFrame(const Node* node, const tf::Transform& computed_motion) const 
+tf::StampedTransform GraphManager::stampedTransformInWorldFrame(const Node* node, const tf::Transform& computed_motion) const
 {
     std::string fixed_frame = ParameterServer::instance()->get<std::string>("fixed_frame_name");
     std::string base_frame  = ParameterServer::instance()->get<std::string>("base_frame_name");
@@ -923,7 +955,7 @@ void GraphManager::broadcastLatestTransform(const ros::TimerEvent& event) const
 {
     //printTransform("Broadcasting cached transform", latest_transform_cache_);
   /*
-    tf::StampedTransform tmp(latest_transform_cache_, 
+    tf::StampedTransform tmp(latest_transform_cache_,
                              ros::Time::now(),
                              latest_transform_cache_.frame_id_,
                              latest_transform_cache_.child_frame_id_);
@@ -931,7 +963,7 @@ void GraphManager::broadcastLatestTransform(const ros::TimerEvent& event) const
     */
 }
 
-void GraphManager::broadcastTransform(const tf::StampedTransform& stamped_transform) const 
+void GraphManager::broadcastTransform(const tf::StampedTransform& stamped_transform) const
 {
     br_.sendTransform(stamped_transform);
 }
@@ -943,7 +975,7 @@ void GraphManager::broadcastTransform(Node* node, tf::Transform& computed_motion
     if(base_frame.empty()){ //if there is no base frame defined, use frame of sensor data
       base_frame = node->header_.frame_id;
     }
-    
+
     /*
     if(graph_.size() == 0){
       ROS_WARN("Cannot broadcast transform while graph is empty sending identity");
@@ -958,7 +990,7 @@ void GraphManager::broadcastTransform(Node* node, tf::Transform& computed_motion
     printTransform("World->Base", world2base);
 
     ROS_DEBUG("Broadcasting transform");
-    
+
     br_.sendTransform(tf::StampedTransform(world2base.inverse(), base2points.stamp_, base_frame, fixed_frame));
 }
 */
@@ -974,7 +1006,7 @@ void publishCloud(Node* node, ros::Time timestamp, ros::Publisher pub){
   node->pc_col->header = backup_h;
 }
 
-void drawFeatureConnectors(cv::Mat& canvas, cv::Scalar line_color, 
+void drawFeatureConnectors(cv::Mat& canvas, cv::Scalar line_color,
                            const std::vector<cv::DMatch> matches,
                            const std::vector<cv::KeyPoint>& newer_keypoints,
                            const std::vector<cv::KeyPoint>& older_keypoints)
@@ -996,7 +1028,7 @@ void drawFeatureConnectors(cv::Mat& canvas, cv::Scalar line_color,
         double hypotenuse = cv::norm(p-q);
         if(hypotenuse > 0.1){  //only larger motions larger than one pix get an arrow line
             cv::line( canvas, p, q, line_color, line_thickness, cv_aa );
-        } else { //draw a smaller circle into the bigger one 
+        } else { //draw a smaller circle into the bigger one
             cv::circle(canvas, p, 1, line_color, line_thickness, cv_aa);
         }
         if(hypotenuse > 3.0){  //only larger motions larger than this get an arrow tip
@@ -1007,7 +1039,7 @@ void drawFeatureConnectors(cv::Mat& canvas, cv::Scalar line_color,
             p.x =  (q.x + 4 * cos(angle - pi_fourth));
             p.y =  (q.y + 4 * sin(angle - pi_fourth));
             cv::line( canvas, p, q, line_color, line_thickness, cv_aa );
-        } 
+        }
     }
 }
 void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
@@ -1024,7 +1056,7 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
       Node* newernode = graph_[graph_.size()-1];
       cv::drawKeypoints(canvas, newernode->feature_locations_2d_, canvas, cv::Scalar(255), 5);
       return;
-    } 
+    }
 
     Node* earliernode = graph_[curr_best_result_.edge.id1];//graph_.size()-2; //compare current to previous
     Node* newernode = graph_[curr_best_result_.edge.id2];
@@ -1051,9 +1083,9 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
       }
     }
 
-    //Draw normal keypoints in given color 
+    //Draw normal keypoints in given color
     cv::drawKeypoints(canvas, with_depth, tmpimage, circle_color, 5);
-    //Draw depthless keypoints in orange 
+    //Draw depthless keypoints in orange
     cv::drawKeypoints(canvas, without_depth, tmpimage, cv::Scalar(0,128,255,0), 5);
     canvas+=tmpimage;
 
@@ -1062,4 +1094,3 @@ void GraphManager::drawFeatureFlow(cv::Mat& canvas, cv::Scalar line_color,
 
     clock_gettime(CLOCK_MONOTONIC, &finish); elapsed = (finish.tv_sec - starttime.tv_sec); elapsed += (finish.tv_nsec - starttime.tv_nsec) / 1000000000.0; ROS_INFO_STREAM_COND_NAMED(elapsed > ParameterServer::instance()->get<double>("min_time_reported"), "timings", __FUNCTION__ << " runtime: "<< elapsed <<" s");
 }
-

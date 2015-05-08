@@ -1,15 +1,15 @@
 /* This file is part of RGBDSLAM.
- * 
+ *
  * RGBDSLAM is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * RGBDSLAM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -19,7 +19,7 @@
 #include "g2o/types/slam3d/edge_se3.h" //For setEmpiricalCovariances
 #include "scoped_timer.h"
 
-///This file contains methods of the GraphManager class without extra 
+///This file contains methods of the GraphManager class without extra
 ///dependencies (except for the class header).
 
 void GraphManager::toggleMapping(bool mappingOn){
@@ -85,8 +85,8 @@ GraphManager::~GraphManager() {
   //TODO: delete all Nodes
     //for (unsigned int i = 0; i < optimizer_->vertices().size(); ++i) {
     //Q_FOREACH(Node* node, graph_) { delete node; }
-    BOOST_FOREACH(GraphNodeType entry, graph_) { 
-      delete entry.second; 
+    BOOST_FOREACH(GraphNodeType entry, graph_) {
+      delete entry.second;
     }
     graph_.clear();
     QMutexLocker locker(&optimizer_mutex_);
@@ -96,6 +96,7 @@ GraphManager::~GraphManager() {
     whole_cloud_pub_.shutdown();
     marker_pub_.shutdown();
     batch_cloud_pub_.shutdown();
+    new_cloud_pub_.shutdown();
 
 }
 
@@ -141,4 +142,3 @@ void GraphManager::setEmpiricalCovariances(){
 
   setEmpiricalCovariancesForEdgeSet(cam_cam_edges_);
 }
-

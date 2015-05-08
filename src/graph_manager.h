@@ -1,15 +1,15 @@
 /* This file is part of RGBDSLAM.
- * 
+ *
  * RGBDSLAM is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * RGBDSLAM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -99,12 +99,12 @@ class GraphManager : public QObject {
       void iamBusy(int id, const char* message, int max);
       void progress(int id, const char* message, int val);
       void renderableOctomap(Renderable* r);
-    
+
     public Q_SLOTS:
       /// Start over with new graph
       void reset();
       ///Throw the last node out, reoptimize
-      void deleteLastFrame(); 
+      void deleteLastFrame();
       void clearPointCloud(pointcloud_type const * pc);
       void clearPointClouds();
       void reducePointCloud(pointcloud_type const * pc);
@@ -123,16 +123,16 @@ class GraphManager : public QObject {
       //The following SLOT methods are in graph_mgr_io.cpp:
       ///iterate over all Nodes, sending their transform and pointcloud
       void sendAllClouds(bool threaded_if_available=true);
-      ///iterate over all Nodes, writing their transform and pointcloud to a bagfile. 
+      ///iterate over all Nodes, writing their transform and pointcloud to a bagfile.
       ///If parameter concurrent_io is set, do it in a background thread
       void saveBagfileAsync(QString filename);
       ///iterate over all Nodes, writing their transform and pointcloud to a bagfile
       void saveBagfile(QString filename);
-      ///Call saveIndividualCloudsToFile, as background thread if threaded=true and possible 
+      ///Call saveIndividualCloudsToFile, as background thread if threaded=true and possible
       void saveIndividualClouds(QString file_basename, bool threaded=true);
-      ///Call saveAllCloudsToFile,  as background thread if threaded=true and possible 
+      ///Call saveAllCloudsToFile,  as background thread if threaded=true and possible
       void saveAllClouds(QString filename, bool threaded=true);
-      ///Call saveAllFeaturesToFile,  as background thread if threaded=true and possible 
+      ///Call saveAllFeaturesToFile,  as background thread if threaded=true and possible
       void saveAllFeatures(QString filename, bool threaded = true);
       ///Save the cloud as octomap by using the (internal) octomap server to render the point clouds into the voxel map
       void saveOctomap(QString filename, bool threaded = true);
@@ -152,14 +152,14 @@ class GraphManager : public QObject {
     /// can be found. If appropriate, the graph is optimized
     /// graphmanager owns newNode after this call. Do no delete the object
     /// \callergraph
-    bool addNode(Node* newNode); 
+    bool addNode(Node* newNode);
 
     //! Try to compute transformations to previous nodes
     /// getPotentialEdgeTargetsWithDijkstra is used to select
     /// previous nodes to match against, then the comparison
     /// of nodes is called, possibly in parallel.
     /// \callergraph
-    bool nodeComparisons(Node* newNode, 
+    bool nodeComparisons(Node* newNode,
                          QMatrix4x4& curr_motion_estimate,
                          bool& edge_to_keyframe);///Output:contains the best-yet of the pairwise motion estimates for the current node
     /// Adds the first node
@@ -175,13 +175,13 @@ class GraphManager : public QObject {
 #endif
 
     ///Draw the features's motions onto the canvas
-    void drawFeatureFlow(cv::Mat& canvas, 
-                         cv::Scalar line_color = cv::Scalar(255,0,0,0), 
-                         cv::Scalar circle_color = cv::Scalar(0,0,255,0)); 
+    void drawFeatureFlow(cv::Mat& canvas,
+                         cv::Scalar line_color = cv::Scalar(255,0,0,0),
+                         cv::Scalar circle_color = cv::Scalar(0,0,255,0));
 
     ///Used by OpenNIListener. Indicates whether long running computations are running
     bool isBusy();
-    
+
     //!Warning: This is a dangerous way to save memory. Some methods will behave undefined after this.
     ///Notable exception: optimizeGraph()
     void deleteFeatureInformation();
@@ -190,10 +190,10 @@ class GraphManager : public QObject {
     void setOptimizerVerbose(bool verbose);
 
     ///Compute information matrix from empirical variances.
-    ///If graph_filename is given, compute variances from 
+    ///If graph_filename is given, compute variances from
     void setEmpiricalCovariances();
 protected:
-        
+
     ///Start over
     void resetGraph();
     ///Applies g2o for optimization returns chi2
@@ -205,16 +205,16 @@ protected:
     ///Instanciate the optimizer with the desired backend
     void createOptimizer(std::string backend, g2o::SparseOptimizer* optimizer = NULL);
     ///will contain the motion to the best matching node
-    MatchingResult curr_best_result_; 
+    MatchingResult curr_best_result_;
 
     ///Compute the tranformation between (sensor) Base and Fixed (Map) frame
     tf::StampedTransform computeFixedToBaseTransform(Node* node, bool invert);
     /// Suggest nodes for comparison. Suggests <sequential_targets> direct predecessors in the time sequence
     /// <geodesic_targets> nodes from the graph-neighborhood and <sample_targets> randomly chosen from the keyframes
-    /// Using the graph neighborhood, has the advantage that once a loop closure is found by sampling, the edge 
-    /// will be used to find more closures, where the first one was found 
+    /// Using the graph neighborhood, has the advantage that once a loop closure is found by sampling, the edge
+    /// will be used to find more closures, where the first one was found
     QList<int> getPotentialEdgeTargetsWithDijkstra(const Node* new_node, int sequential_targets, int geodesic_targets, int sampled_targets = 5, int predecessor_id = -1, bool include_predecessor = false);
-    
+
     //std::vector<int> getPotentialEdgeTargetsFeatures(const Node* new_node, int max_targets);
 
     ///use matching results to update location
@@ -249,7 +249,7 @@ protected:
     uint total_descriptor_count;
     int *descriptor_to_node;
 #endif
-    
+
     bool addEdgeToG2O(const LoadedEdge3D& edge, Node* n1, Node* n2, bool good_edge, bool set_estimate, QMatrix4x4& motion_estimate);
 
     //Delete a camera frame. Be careful, this might split the graph!
@@ -261,9 +261,9 @@ protected:
     ///Broadcast cached transform
     void broadcastLatestTransform(const ros::TimerEvent& event) const;
 
-    ///Compute the transform between the fixed frame (usually the initial position of the cam) 
+    ///Compute the transform between the fixed frame (usually the initial position of the cam)
     /// and the node from the motion (given in sensor frame)
-    tf::StampedTransform stampedTransformInWorldFrame(const Node* node, 
+    tf::StampedTransform stampedTransformInWorldFrame(const Node* node,
                                                       const tf::Transform& computed_motion) const;
 
     ///Add a keyframe to the list (and log keyframes)
@@ -280,7 +280,7 @@ protected:
     //! Return pointer to a list of the optimizers graph poses on the heap(!)
     QList<QMatrix4x4>* getAllPosesAsMatrixList();
     //! Return pointer to a list of the optimizers graph edges on the heap(!)
-    QList<QPair<int, int> >* getGraphEdges(); 
+    QList<QPair<int, int> >* getGraphEdges();
 
     // MEMBER VARIABLES
     QList<QPair<int, int> > current_edges_;
@@ -291,21 +291,22 @@ protected:
     double geodesicDiscount(g2o::HyperDijkstra& hypdij, const MatchingResult& mr);
     ///See setEmpiricalCovariances
     void setEmpiricalCovariancesForEdgeSet(EdgeSet& edges);
-    
+
     g2o::SparseOptimizer* optimizer_;
 
-    ros::Publisher marker_pub_; 
+    ros::Publisher marker_pub_;
     ros::Publisher ransac_marker_pub_;
     ros::Publisher whole_cloud_pub_;
     ros::Publisher batch_cloud_pub_;
-    
+    ros::Publisher new_cloud_pub_;
+
     //!Used to start the broadcasting of the pose estimate regularly
     ros::Timer timer_;
     //!Used to broadcast the pose estimate
     mutable tf::TransformBroadcaster br_;
     tf::Transform computed_motion_; ///<transformation of the last frame to the first frame (assuming the first one is fixed)
     tf::Transform  init_base_pose_;
-    tf::StampedTransform latest_transform_cache_;//base_frame -> optical_frame 
+    tf::StampedTransform latest_transform_cache_;//base_frame -> optical_frame
 
     //!Map from node id to node. Assumption is, that ids start at 0 and are consecutive
     typedef std::pair<int, Node*> GraphNodeType;
@@ -322,17 +323,18 @@ protected:
     QMutex optimization_mutex_;
     //cv::FlannBasedMatcher global_flann_matcher;
     QList<int> keyframe_ids_;//Keyframes are added, if no previous keyframe was matched
-    //NEW std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > feature_coords_;  
-    //NEW cv::Mat feature_descriptors_;         
+    //NEW std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f> > feature_coords_;
+    //NEW cv::Mat feature_descriptors_;
     unsigned int loop_closures_edges, sequential_edges;
     unsigned int next_seq_id;
     unsigned int next_vertex_id;
     std::string current_backend_;
     int earliest_loop_closure_node_;
     ColorOctomapServer co_server_;
-    
+
     //The following methods are defined in graph_mgr_io.cpp:
     void sendAllCloudsImpl();
+    void sendNewCloud();
     ///iterate over all Nodes, transform them to the fixed frame, aggregate and save
     void saveAllCloudsToFile(QString filename);
     ///Transform all feature positions to global coordinates and save them together with the belonging descriptors
@@ -352,7 +354,7 @@ protected:
     void visualizeGraphIds() const;
     ///Send markers to visualize the last matched features in rviz (if somebody subscribed)
     void visualizeFeatureFlow3D(unsigned int marker_id = 0, bool draw_outlier = true);
-    
+
     g2o::RobustKernelHuber robust_kernel_;
     //g2o::RobustKernelDCS robust_kernel_;
 

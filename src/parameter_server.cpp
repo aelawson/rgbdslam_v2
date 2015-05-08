@@ -1,15 +1,15 @@
 /* This file is part of RGBDSLAM.
- * 
+ *
  * RGBDSLAM is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * RGBDSLAM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with RGBDSLAM.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -47,6 +47,7 @@ void ParameterServer::defaultConfig() {
   // Output data settings
   addOption("store_pointclouds",             static_cast<bool> (true),                  "If the point clouds are not needed online, setting this to false saves lots of memory ");
   addOption("individual_cloud_out_topic",    std::string("/rgbdslam/batch_clouds"),     "Use this topic when sending the individual clouds with the computed transforms, e.g. for octomap_server");
+  addOption("new_cloud_out_topic",           std::string("/rgbdslam/new_clouds"),       "Use this topic when sending each new individual cloud as nodes are generated.");
   addOption("aggregate_cloud_out_topic",     std::string("/rgbdslam/aggregate_clouds"), "Use this topic when sending the all points in one big registered cloud");
   addOption("send_clouds_rate",              static_cast<double> (5),                   "When sending the point clouds (e.g. to RVIZ or Octomap Server) limit sending to this many clouds per second");
   addOption("publisher_queue_size",          static_cast<int> (5),                      "ROS standard parameter for all publishers");
@@ -66,14 +67,14 @@ void ParameterServer::defaultConfig() {
   addOption("compress_output_bagfile",       static_cast<bool> (true),                  "Whether to enable bz2 compression when saving bagfiles");
   addOption("occupancy_filter_threshold",    static_cast<double> (0.9),                 "Remove points located at voxels with occupancy probability below this.");
 
-  // TF information settings 
+  // TF information settings
   addOption("fixed_frame_name",              std::string("/map"),                       "The computed camera transforms are with respect to this frame. It is set to the identity for the first frame processed or, if ground truth is available, to the ground truth of the first frame");
   addOption("odom_frame_name",               std::string(""),                           "A fixed frame estimation from somewhere else (e.g. odometry, laser-based mapping). Doesn't need to correspond to the pose of the fixed_frame_name");
   addOption("ground_truth_frame_name",       std::string(""),                           "Use empty string if no ground truth tf frame available");
   addOption("base_frame_name",               std::string("/camera_link"),               "If the camera is articulated use robot base");
   addOption("fixed_camera",                  static_cast<bool> (true),                  "Is camera fixed relative to base?");
 
-  // Visual Features, to activate GPU-based features see CMakeLists.txt 
+  // Visual Features, to activate GPU-based features see CMakeLists.txt
   addOption("feature_detector_type",         std::string("SURF"),                       "SIFTGPU, SURF, SIFT or ORB, or variants like GridDynamicORB or DynamicSURF (however, not GridXXX only, and not in combination with SIFTGPU)");
   addOption("feature_extractor_type",        std::string("SURF"),                       "SIFTGPU, SURF, SIFT or ORB");
   addOption("matcher_type",                  std::string("FLANN"),                      "SIFTGPU (matching on the gpu) or FLANN or BRUTEFORCE");
@@ -87,7 +88,7 @@ void ParameterServer::defaultConfig() {
   addOption("use_feature_mask",              static_cast<bool>(false),                  "Whether to extract features without depth");
   addOption("use_root_sift",                 static_cast<bool>(true),                   "Whether to use euclidean distance or Hellman kernel for feature comparison");
 
-  // Frontend settings 
+  // Frontend settings
   addOption("max_translation_meter",         static_cast<double> (1e10),                "Sanity check for smooth motion.");
   addOption("max_rotation_degree",           static_cast<int> (360),                    "Sanity check for smooth motion.");
   addOption("min_translation_meter",         static_cast<double> (0.0),                 "Frames with motion less than this, will be omitted ");
@@ -117,7 +118,7 @@ void ParameterServer::defaultConfig() {
   addOption("concurrent_optimization",       static_cast<bool> (true),                  "Do graph optimization in a seperate thread");
   addOption("backend_solver",                std::string("cholmod"),                    "Which solver to use in g2o for matrix inversion: 'csparse' , 'cholmod' or 'pcg'");
 
-  // Visualization Settings 
+  // Visualization Settings
   addOption("use_glwidget",                  static_cast<bool> (true),                  "3D view");
   addOption("use_gui",                       static_cast<bool> (true),                  "GUI vs Headless Mode");
   addOption("glwidget_without_clouds",       static_cast<bool> (false),                 "3D view should only display the graph");
@@ -136,7 +137,7 @@ void ParameterServer::defaultConfig() {
   addOption("scalable_2d_display",           static_cast<bool> (false),                 "Whether the input images are expanded. Consumes CPU time");
   addOption("cloud_display_type",            static_cast<std::string>("TRIANGLE_STRIP"),        "Drastically affects rendering time. GL_xxx type of compiled list GL_TRIANGLE_STRIP (fastest processing of new clouds), GL_POINTS (fastest display) GL_TRIANGLES (no good), or ELLIPSOIDS (very slow, but visualizes standard deviation)");
 
-  // Misc 
+  // Misc
   addOption("start_paused",                  static_cast<bool> (true),                  "Whether to directly start mapping with the first input image, or to wait for the user to start manually");
   addOption("batch_processing",              static_cast<bool> (false),                 "Store results and close after bagfile has been processed");
   addOption("concurrent_node_construction",  static_cast<bool> (true),                  "Detect+extract features for new frame, while current frame is inserted into graph ");
