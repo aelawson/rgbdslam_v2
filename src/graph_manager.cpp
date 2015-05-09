@@ -395,6 +395,8 @@ void GraphManager::firstNode(Node* new_node)
       //renderToOctomap(new_node);
     }
 
+    sendNewCloud(new_node);
+
     process_node_runs_ = false;
 }
 
@@ -785,6 +787,8 @@ bool GraphManager::addNode(Node* new_node)
       {
         optimizeGraph();
       }
+
+      sendNewCloud(new_node);
 
       //This is old stuff for visualization via rviz - not tested in a long time, would be safe to delete _if_ nobody uses it
       visualizeGraphEdges();
