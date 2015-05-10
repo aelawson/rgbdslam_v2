@@ -334,7 +334,7 @@ protected:
 
     //The following methods are defined in graph_mgr_io.cpp:
     void sendAllCloudsImpl();
-    void sendNewCloud();
+    void sendNewCloud(Node* node);
     ///iterate over all Nodes, transform them to the fixed frame, aggregate and save
     void saveAllCloudsToFile(QString filename);
     ///Transform all feature positions to global coordinates and save them together with the belonging descriptors
