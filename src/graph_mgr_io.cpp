@@ -162,7 +162,6 @@ void GraphManager::sendNewCloud(Node* node) {
 
     if(!node->valid_tf_estimate_) {
     ROS_INFO("Skipping node %i: No valid estimate", node->id_);
-    continue;
     }
     while(node->header_.stamp.toSec() > (ros::Time::now().toSec() - delay_seconds)){
     ROS_INFO("Waiting for node becoming %f seconds old", delay_seconds);
@@ -173,8 +172,7 @@ void GraphManager::sendNewCloud(Node* node) {
     publishCloud(node, base_to_fixed.stamp_, new_cloud_pub_);
 
     QString message;
-    Q_EMIT setGUIInfo(message.sprintf("Sending pointcloud and map transform (%i/%i) on topics %s and /tf",
-        it->first, (int)graph_.size(), ParameterServer::instance()->get<std::string>("new_cloud_out_topic").c_str()) );
+    Q_EMIT setGUIInfo(message.sprintf("Sending new pointcloud and map transform..."));
 
     batch_processing_runs_ = false;
     Q_EMIT sendFinished();
