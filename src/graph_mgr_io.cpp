@@ -79,6 +79,7 @@ tf::StampedTransform GraphManager::computeFixedToBaseTransform(Node* node, bool 
     if(base_frame.empty())
     { //if there is no base frame defined, use frame of sensor data
       base_frame = graph_.begin()->second->header_.frame_id;
+      ROS_INFO("Computed transformation for f")
     }
     if(invert){
       return tf::StampedTransform(world2base.inverse(), now, base_frame, fixed_frame);
@@ -168,8 +169,8 @@ void GraphManager::sendNewCloud(Node* node) {
     r.sleep();
     }
     tf::StampedTransform base_to_fixed = this->computeFixedToBaseTransform(node, true);
-    br_.sendTransform(base_to_fixed);
     publishCloud(node, base_to_fixed.stamp_, new_cloud_pub_);
+    br_.sendTransform(base_to_fixed);
 
     QString message;
     Q_EMIT setGUIInfo(message.sprintf("Sending new pointcloud and map transform..."));
@@ -205,8 +206,10 @@ void GraphManager::sendAllCloudsImpl()
       r.sleep();
     }
     tf::StampedTransform base_to_fixed = this->computeFixedToBaseTransform(node, true);
-    br_.sendTransform(base_to_fixed);
     publishCloud(node, base_to_fixed.stamp_, batch_cloud_pub_);
+    br_.sendTransform(base_to_fixed);
+
+    ROS_INFO("Stamp at: %d", (int) base_to_fixed.stamp_.toSec());
 
     QString message;
     Q_EMIT setGUIInfo(message.sprintf("Sending pointcloud and map transform (%i/%i) on topics %s and /tf", it->first, (int)graph_.size(), ParameterServer::instance()->get<std::string>("individual_cloud_out_topic").c_str()) );
