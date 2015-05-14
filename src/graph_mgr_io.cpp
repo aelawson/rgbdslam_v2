@@ -208,8 +208,6 @@ void GraphManager::sendAllCloudsImpl()
     publishCloud(node, base_to_fixed.stamp_, batch_cloud_pub_);
     br_.sendTransform(base_to_fixed);
 
-    ROS_INFO("Stamp at: %d", (int) base_to_fixed.stamp_.toSec());
-
     QString message;
     Q_EMIT setGUIInfo(message.sprintf("Sending pointcloud and map transform (%i/%i) on topics %s and /tf", it->first, (int)graph_.size(), ParameterServer::instance()->get<std::string>("individual_cloud_out_topic").c_str()) );
     r.sleep();
