@@ -79,7 +79,6 @@ tf::StampedTransform GraphManager::computeFixedToBaseTransform(Node* node, bool 
     if(base_frame.empty())
     { //if there is no base frame defined, use frame of sensor data
       base_frame = graph_.begin()->second->header_.frame_id;
-      ROS_INFO("Computed transformation for f")
     }
     if(invert){
       return tf::StampedTransform(world2base.inverse(), now, base_frame, fixed_frame);
